@@ -40,29 +40,56 @@ server.listen(PORT, () => {
 })
 
 const wss = new ws.WebSocketServer({ server });
-const messages = [];
+// const messages = [];
 const users = {};
 
 wss.on("connection", (websocketConnection, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const username = url.searchParams.get('username');
-  console.log(`[open] Connected ${req.socket.remoteAddress}, username: ${username}`);
+  if (username !== null) {
+    console.log(`[open] Connected ${req.socket.remoteAddress}, username: ${username}`);
 
-  if (username in users) {
-    users[username].push(ws);
+    if (username in users) {
+      users[username] = [...users[username], ws]
+      // users[username].push(ws);
+    } else {
+      users[username] = ws;
+    }
   } else {
-    users[username] = ws;
+    console.log(`[open] Connected ${req.socket.remoteAddress}`);
   }
-
+  
   console.log(users);
 
   websocketConnection.on("message", (message) => {
-      console.log("[message] Received: " + message);
+      console.log("[message] Received from " + username + ": " + message);
 
-      messages.push(message);
+      users.forEach(element => {
+        if (element.username !== username) {
+          use
+        } 
+      });
+
+      // messages.push(message);
   });
 
-  websocketConnection.on("close", () => {
-      console.log(`[close] Disconnected ${ip}`);
+  websocketConnection.on("close", (event) => {
+    if (event.wasClean) {
+      console.log(username, `[close] Соединение закрыто чисто, код=${event.code} причина=${event.reason}`);
+    } else {
+      // например, сервер убил процесс или сеть недоступна
+      // обычно в этом случае event.code 1006
+      console.log(username, '[close] Соединение прервано', event);
+    }
   });
 });
+
+// TODO: раскидать соединения в объект
+// TODO: научиться отправлять сообщения определённому клиенту
+// TODO: в будущем отправлять сообщения всем клиентам кроме отправителя
+
+// TODO: настроить отправку сообщений со стороны фронта
+// TODO: настроить выход из веб сокет соединения со стороны фронта
+// TODO: то же самое со стороны бэке (удалять из объекта)
+
+// TODO: научиться дёргать ручку Миши

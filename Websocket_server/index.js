@@ -43,6 +43,17 @@ const wss = new ws.WebSocketServer({ server });
 // const messages = [];
 const users = {};
 
+const sendMessageToOtherUsers = (username, message) => {
+  // данный кусок кода должен быть в другом месте, а здесь мы дёргаем ручку транспортного уровня
+  for (key in users) {
+    console.log(`[array] key: ${ key }, users[keys]: ${ users[key] }; username: ${ username }`);
+    if (key !== username) {
+      const msgString = JSON.stringify(message); 
+      users[key].send(msgString);
+    }
+  }
+}
+
 wss.on("connection", (websocketConnection, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const username = url.searchParams.get('username');
@@ -50,10 +61,10 @@ wss.on("connection", (websocketConnection, req) => {
     console.log(`[open] Connected ${req.socket.remoteAddress}, username: ${username}`);
 
     if (username in users) {
-      users[username] = [...users[username], ws]
+      users[username] = [...users[username], websocketConnection]
       // users[username].push(ws);
     } else {
-      users[username] = ws;
+      users[username] = websocketConnection;
     }
   } else {
     console.log(`[open] Connected ${req.socket.remoteAddress}`);
@@ -61,16 +72,11 @@ wss.on("connection", (websocketConnection, req) => {
   
   console.log(users);
 
-  websocketConnection.on("message", (message) => {
-      console.log("[message] Received from " + username + ": " + message);
-
-      users.forEach(element => {
-        if (element.username !== username) {
-          use
-        } 
-      });
-
-      // messages.push(message);
+  websocketConnection.on("message", async (messageString) => {
+    console.log("[message] Received from " + username + ": " + messageString);
+    const message = await JSON.parse(messageString);
+    
+    sendMessageToOtherUsers(username, message);
   });
 
   websocketConnection.on("close", (event) => {
@@ -83,6 +89,8 @@ wss.on("connection", (websocketConnection, req) => {
     }
   });
 });
+
+
 
 // TODO: раскидать соединения в объект
 // TODO: научиться отправлять сообщения определённому клиенту

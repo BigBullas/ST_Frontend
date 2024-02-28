@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from './hooks/useUser'
-import logo from './logo.svg';
 import './App.css';
-import { current } from '@reduxjs/toolkit';
 
 type Message = {
-  sender?: string,
-  text: string,
-  date?: string,
+  username?: string,
+  data?: string,
+  send_time?: string,
+  error?: string,
 }
 
 function App() {
@@ -15,14 +14,15 @@ function App() {
   const [userName, setUsername] = useState(login);
   const [isLogin, setIslogin] = useState<boolean>(false);
 
-  const [message, setMessage] = useState<Message>({text: ''});
+  const [message, setMessage] = useState<Message>({data: ''});
   const [messageArray, setMessageArray] = useState<Message[]>([]);
 
   const [ws, setWs] = useState<WebSocket | undefined>();
 
+  // убрать перед итоговой версией
   useEffect(() => {
     console.log('messageArray: ', messageArray);
-  }, [messageArray]); // Зависимость от messageArray
+  }, [messageArray]);
 
   const createWebSocket = (url: string) => {
     const ws = new WebSocket(url);
@@ -33,10 +33,10 @@ function App() {
   
     ws.onmessage = function(event) {
       const msgString = event.data;
-      // Преобразование массива чисел в строку
-      // const dataString = String.fromCharCode.apply(null, bufferObject.data);
       const message = JSON.parse(msgString);
+
       console.log("Message from server:", message);
+      
       setMessageArray(currentMsgArray => [...currentMsgArray, message]);
     };
   
@@ -62,9 +62,9 @@ function App() {
 
   const handleChangeMessage = (event: any) => {
     const newMsg: Message = {
-      text: event.target.value,
-      sender: userName,
-      date: String(new Date()),
+      data: event.target.value,
+      username: userName,
+      send_time: String(new Date()),
     }
     setMessage(newMsg);
   }
@@ -109,6 +109,8 @@ function App() {
     setUsername('');
   }
 
+  // TODO: добавить нормальный вид даты
+
   return (
     <div className="App" style={{padding: '0 1.5em 2em 1.5em'}}>
       <header className="">
@@ -132,13 +134,19 @@ function App() {
       <div>
         { messageArray.length > 0 ? (
           <div>
-            {messageArray.map((item, index) => (
+            {messageArray.map((item, index) => {return !item.error ? (
               <div key={ index }>
-                <div>от { item.sender ?? 'Анон' } </div>
-                <div>Сообщение: { item.text }</div>
-                <div>{ item.date ?? String(new Date()) }</div>
+                <div>от { item.username ?? 'Анон' } </div>
+                <div>Сообщение: { item.data }</div>
+                <div>{ item.send_time ?? String(new Date()) }</div>
               </div>
-            ))}
+            ) : (
+              <div key={ index }>
+                <div>от { item.username ?? 'Анон' } </div>
+                <div>Ошибка при отправке: { item.error }</div>
+                <div>{ item.send_time ?? String(new Date()) }</div>
+              </div>
+            )})}
           </div>
         ) : (
           <div>
@@ -151,7 +159,7 @@ function App() {
         <div>
           <input 
             placeholder='Введите сообщение'
-            value={ message.text }
+            value={ message.data }
             onChange={ handleChangeMessage }
             disabled = { !isLogin }
             >

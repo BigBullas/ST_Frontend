@@ -6,7 +6,17 @@ const path = require('path'); // импорт библиотеки path для �
 
 const app = express(); // создание экземпляра приложения express
 const server = http.createServer(app); // создание HTTP-сервера
+
 const PORT = process.env.PORT || 8081; // присвоения порта
+
+// const PORT_TRANSPORT_LEVEL = 8080;
+const PORT_TRANSPORT_LEVEL = 8085;
+
+// const HOSTNAME = '192.168.146.193';
+const HOSTNAME = 'localhost';
+
+const HOSTNAME_TRANSPORT_LEVEL = 'localhost';
+// const HOSTNAME_TRANSPORT_LEVEL = '192.168.146.106';
 
 // Используйте express.json() для парсинга JSON тела запроса
 app.use(express.json());
@@ -14,7 +24,7 @@ app.use(express.json());
 // TODO: продумать поле для ошибки
 app.post('/receive', (req, res) => {
   const message = req.body;
-  console.log("body: ", message);
+  // console.log("body: ", message);
 
   sendMessageToOtherUsers(message.username, message);
 
@@ -22,24 +32,25 @@ app.post('/receive', (req, res) => {
 });
 
 // запуск сервера приложения
-server.listen(PORT, () => {
-  console.log(`Server started at http://localhost:${PORT}`);
+server.listen(PORT, HOSTNAME, () => {
+  console.log(`Server started at http://${HOSTNAME}:${PORT}`);
 })
 
 const wss = new ws.WebSocketServer({ server });
 const users = {};
 
 const sendMsgToTransportLevel = async (message) => {
-  const response = await axios.post('http://localhost:8085/send', message);
-  if (response.status !== 200) {
-    message.error = 'Error from transport level by sending message';
-    users[message.username].forEach(element => {
-      element.send(message);
-    });
-  }
+  const response = await axios.post(`http://${HOSTNAME_TRANSPORT_LEVEL}:${PORT_TRANSPORT_LEVEL}/send`, message);
+  // if (response.status !== 200) {
+  //   message.error = 'Error from transport level by sending message';
+  //   users[message.username].forEach(element => {
+  //     element.send(message);
+  //   });
+  // }
+  console.log(response);
 }
 
-const sendMessageToOtherUsers = (username, message) => {
+function sendMessageToOtherUsers (username, message) {
   for (key in users) {
     console.log(`[array] key: ${ key }, users[keys]: ${ users[key] }; username: ${ username }`);
     if (key !== username) {

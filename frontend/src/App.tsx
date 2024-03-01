@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useUser } from './hooks/useUser'
 import './App.css';
 
+// const HOSTNAME = '192.168.146.193';
+const HOSTNAME = 'localhost';
+
 type Message = {
   username?: string,
   data?: string,
@@ -54,9 +57,9 @@ function App() {
   useEffect(() => {
     if (login) {
       setIslogin(true);
-      setWs(createWebSocket(`ws://localhost:8081/?username=${encodeURIComponent(login)}`));
+      setWs(createWebSocket(`ws://${HOSTNAME}:8081/?username=${encodeURIComponent(login)}`));
     } else {
-      setWs(new WebSocket('ws://localhost:8081'));
+      setWs(new WebSocket(`ws://${HOSTNAME}:8081`));
     }
   }, [])
 
@@ -71,6 +74,7 @@ function App() {
 
   const handleClickSendMessBtn = () => {
     if (userName && ws) {
+      message.send_time = '2024-02-23T13:45:41Z';
       const msgJSON = JSON.stringify(message);
       ws.send(msgJSON);
       setMessageArray(currentMsgArray => [...currentMsgArray, message]);
@@ -95,7 +99,7 @@ function App() {
     } else {
       console.log('ws.close(1000, User enter userName); dont work');
     }
-    setWs(createWebSocket(`ws://localhost:8081/?username=${encodeURIComponent(userName)}`));
+    setWs(createWebSocket(`ws://${HOSTNAME}:8081/?username=${encodeURIComponent(userName)}`));
   }
 
   const handleClickLogoutBtn = () => {

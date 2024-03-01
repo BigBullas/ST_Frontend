@@ -4,11 +4,12 @@ const http = require('http');
 
 const app = express(); // создание экземпляра приложения express
 const server = http.createServer(app); // создание HTTP-сервера
+app.use(express.json());
+
 const PORT = process.env.PORT || 8085; // присвоения порта
+
 // const HOSTNAME = '192.168.146.193';
 const HOSTNAME = 'localhost';
-
-app.use(express.json());
 
 app.post('/send', async (req, res) => {
   const message = req.body;

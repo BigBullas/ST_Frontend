@@ -1,19 +1,33 @@
-const express = require('express'); // импорт библиотеки express
-const axios = require('axios');
-const http = require('http');
-const ws = require("ws");
-const path = require('path'); // импорт библиотеки path для работы с путями
+import express from 'express'; // импорт библиотеки express
+import axios from 'axios';
+import http from 'http';
+import ws, { WebSocket } from "ws";
+
+type Message = {
+  id?: number, 
+  username: string,
+  data?: string,
+  send_time?: string,
+  error?: string,
+}
+
+interface Users {
+  [key: string]: {
+    id: Number,
+    ws: WebSocket
+  }[]
+}
 
 const app = express(); // создание экземпляра приложения express
 const server = http.createServer(app); // создание HTTP-сервера
 
-const PORT = process.env.PORT || 8081; // присвоения порта
+const PORT: number = 8081; // присвоения порта
 
 // const PORT_TRANSPORT_LEVEL = 8080;
 const PORT_TRANSPORT_LEVEL = 8085;
 
-// const HOSTNAME = '192.168.146.193';
-const HOSTNAME = 'localhost';
+const HOSTNAME = '192.168.146.193';
+// const HOSTNAME = 'localhost';
 
 const HOSTNAME_TRANSPORT_LEVEL = 'localhost';
 // const HOSTNAME_TRANSPORT_LEVEL = '192.168.146.106';
@@ -23,7 +37,7 @@ app.use(express.json());
 
 // TODO: продумать поле для ошибки
 app.post('/receive', (req, res) => {
-  const message = req.body;
+  const message: Message = req.body;
   // console.log("body: ", message);
 
   sendMessageToOtherUsers(message.username, message);
@@ -37,50 +51,62 @@ server.listen(PORT, HOSTNAME, () => {
 })
 
 const wss = new ws.WebSocketServer({ server });
-const users = {};
+const users: Users = {};
 
-const sendMsgToTransportLevel = async (message) => {
+const sendMsgToTransportLevel = async (message: Message) => {
   const response = await axios.post(`http://${HOSTNAME_TRANSPORT_LEVEL}:${PORT_TRANSPORT_LEVEL}/send`, message);
-  // if (response.status !== 200) {
-  //   message.error = 'Error from transport level by sending message';
-  //   users[message.username].forEach(element => {
-  //     element.send(message);
-  //   });
-  // }
-  console.log(response);
+  if (response.status !== 200) {
+    message.error = 'Error from transport level by sending message';
+    users[message.username].forEach(element => {
+      if (message.id === element.id) {
+        element.ws.send(JSON.stringify(message));
+      }
+    });
+  }
+  console.log("Response from transport level: ", response);
 }
 
-function sendMessageToOtherUsers (username, message) {
-  for (key in users) {
+function sendMessageToOtherUsers (username: string, message: Message) {
+  const msgString = JSON.stringify(message);
+  for (const key in users) {
     console.log(`[array] key: ${ key }, users[keys]: ${ users[key] }; username: ${ username }`);
     if (key !== username) {
-      const msgString = JSON.stringify(message);
       users[key].forEach(element => {
-        element.send(msgString);
+        element.ws.send(msgString);
       });
     }
   }
 }
 
 wss.on("connection", (websocketConnection, req) => {
+  if (!req.url) {
+    console.log(`Error: req.url = ${req.url}`);
+    return;
+  }
+
   const url = new URL(req.url, `http://${req.headers.host}`);
   const username = url.searchParams.get('username');
+
   if (username !== null) {
-    console.log(`[open] Connected ${req.socket.remoteAddress}, username: ${username}`);
+    console.log(`[open] Connected ${req.socket}, username: ${username}`);
 
     if (username in users) {
-      users[username] = [...users[username], websocketConnection]
+      users[username] = [...users[username], {id: users[username].length, ws: websocketConnection} ]
     } else {
-      users[username] = [websocketConnection];
+      users[username] = [{id: 1, ws: websocketConnection}];
     }
+
+    // TODO: здесь надо отправлять сообщение пользователю с id его соединения и типом INFO (везде добавить типы сообщений)
   } else {
-    console.log(`[open] Connected ${req.socket.remoteAddress}`);
+    console.log(`[open] Connected ${req.socket}`);
   }
   
-  websocketConnection.on("message", async (messageString) => {
+  websocketConnection.on("message", async (messageString: string) => {
+    // TODO: проверить, есть ли ошибка на этом месте (раньше было: (messageString) типа RawData)
     console.log("[message] Received from " + username + ": " + messageString);
-    const message = await JSON.parse(messageString);
-    message.sender = message.username ?? username;
+
+    const message: Message = await JSON.parse(messageString);
+    message.username = message.username ?? username;
 
     sendMsgToTransportLevel(message);
   });

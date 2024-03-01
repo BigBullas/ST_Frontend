@@ -6,6 +6,7 @@ import './App.css';
 const HOSTNAME = 'localhost';
 
 type Message = {
+  id?: number, 
   username?: string,
   data?: string,
   send_time?: string,

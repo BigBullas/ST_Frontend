@@ -1,0 +1,63 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "WebChat API",
+    "description": "WebChat Application Level API",
+    "version": "1.0.0"
+  },
+  "host": "localhost:8081",
+  "basePath": "/",
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/receive": {
+      "post": {
+        "description": "Receive new message",
+        "parameters": [
+          {
+            "name": "message",
+            "in": "body",
+            "description": "New message",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Message"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "example": 1
+        },
+        "username": {
+          "type": "string",
+          "example": "Test123"
+        },
+        "data": {
+          "type": "string",
+          "example": "Test message"
+        },
+        "send_time": {
+          "type": "string",
+          "example": "2024-02-23T13:45:41Z"
+        },
+        "error": {
+          "type": "string",
+          "example": "Error from transport level by sending message"
+        }
+      }
+    }
+  }
+}
